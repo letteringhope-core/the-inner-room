@@ -28,11 +28,47 @@ export const verses = [
   { text: 'Thy word is a lamp unto my feet, and a light unto my path.', ref: 'Psalm 119:105' },
   { text: 'Give thanks in everything, for this is the will of God in Christ Jesus.', ref: '1 Thessalonians 5:18' },
   { text: 'Draw nigh to God, and he will draw nigh to you.', ref: 'James 4:8' },
-  { text: 'The Lord bless thee, and keep thee.', ref: 'Numbers 6:24' }
+  { text: 'The Lord bless thee, and keep thee.', ref: 'Numbers 6:24' },
+  { text: 'Ask, and it shall be given you; seek, and ye shall find.', ref: 'Matthew 7:7' },
+  { text: 'Blessed are the pure in heart: for they shall see God.', ref: 'Matthew 5:8' },
+  { text: 'Let your light so shine before men, that they may see your good works.', ref: 'Matthew 5:16' },
+  { text: 'Take my yoke upon you, and learn of me; for I am meek and lowly in heart.', ref: 'Matthew 11:29' },
+  { text: 'Ye are the salt of the earth.', ref: 'Matthew 5:13' },
+  { text: 'With God all things are possible.', ref: 'Matthew 19:26' },
+  { text: 'Where two or three are gathered together in my name, there am I in the midst of them.', ref: 'Matthew 18:20' },
+  { text: 'Judge not, that ye be not judged.', ref: 'Matthew 7:1' },
+  { text: 'It is more blessed to give than to receive.', ref: 'Acts 20:35' },
+  { text: 'I am the way, the truth, and the life.', ref: 'John 14:6' },
+  { text: 'Ye shall know the truth, and the truth shall make you free.', ref: 'John 8:32' },
+  { text: 'Peace I leave with you, my peace I give unto you.', ref: 'John 14:27' },
+  { text: 'Greater love hath no man than this, that a man lay down his life for his friends.', ref: 'John 15:13' },
+  { text: 'I am the good shepherd: the good shepherd giveth his life for the sheep.', ref: 'John 10:11' },
+  { text: 'In my Father’s house are many mansions.', ref: 'John 14:2' },
+  { text: 'Now abideth faith, hope, charity, these three; but the greatest of these is charity.', ref: '1 Corinthians 13:13' },
+  { text: 'Watch ye, stand fast in the faith, quit you like men, be strong.', ref: '1 Corinthians 16:13' },
+  { text: 'Let all that you do be done in love.', ref: '1 Corinthians 16:14' },
+  { text: 'We walk by faith, not by sight.', ref: '2 Corinthians 5:7' },
+  { text: 'God loveth a cheerful giver.', ref: '2 Corinthians 9:7' },
+  { text: 'My grace is sufficient for thee: for my strength is made perfect in weakness.', ref: '2 Corinthians 12:9' },
+  { text: 'Bear ye one another’s burdens.', ref: 'Galatians 6:2' },
+  { text: 'The fruit of the Spirit is love, joy, peace, longsuffering, gentleness, goodness, faith.', ref: 'Galatians 5:22' },
+  { text: 'For by grace are ye saved through faith; and that not of yourselves: it is the gift of God.', ref: 'Ephesians 2:8' },
+  { text: 'Be strong in the Lord, and in the power of his might.', ref: 'Ephesians 6:10' },
+  { text: 'Finally, brethren, whatsoever things are true, whatsoever things are honest, think on these things.', ref: 'Philippians 4:8' },
+  { text: 'I have learned, in whatsoever state I am, therewith to be content.', ref: 'Philippians 4:11' },
+  { text: 'My God shall supply all your need according to his riches in glory by Christ Jesus.', ref: 'Philippians 4:19' },
+  { text: 'Set your affection on things above, not on things on the earth.', ref: 'Colossians 3:2' },
+  { text: 'And whatsoever ye do, do it heartily, as to the Lord, and not unto men.', ref: 'Colossians 3:23' }
 ]
 
+// A fixed reference point (not "today") so the rotation advances forward
+// forever and never resets on Jan 1 - it just keeps cycling through the
+// list, day after day, indefinitely.
+const ROTATION_EPOCH = new Date(2024, 0, 1)
+
 export function verseOfTheDay(date = new Date()) {
-  const start = new Date(date.getFullYear(), 0, 0)
-  const dayOfYear = Math.floor((date - start) / 86400000)
-  return verses[dayOfYear % verses.length]
+  const startOfDay = new Date(date.getFullYear(), date.getMonth(), date.getDate())
+  const daysSinceEpoch = Math.round((startOfDay - ROTATION_EPOCH) / 86400000)
+  const index = ((daysSinceEpoch % verses.length) + verses.length) % verses.length
+  return verses[index]
 }

@@ -7,10 +7,21 @@ import { toDateKey } from '../lib/date.js'
 
 const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
+function computeStreak(activeDates, today) {
+  let streak = 0
+  const cursor = new Date(today)
+  while (activeDates.has(toDateKey(cursor))) {
+    streak += 1
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return streak
+}
+
 export default function Home() {
   const navigate = useNavigate()
   const verse = verseOfTheDay()
   const [noteDates, setNoteDates] = useState(new Set())
+  const [logDates, setLogDates] = useState(new Set())
   const uid = auth.currentUser?.uid
 
   const today = new Date()
@@ -18,23 +29,37 @@ export default function Home() {
   const month = today.getMonth()
   const todayKey = toDateKey(today)
   const monthLabel = today.toLocaleDateString(undefined, { month: 'long' })
+  const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`
   const daysInMonth = new Date(year, month + 1, 0).getDate()
   const leadingBlanks = new Date(year, month, 1).getDay()
 
   useEffect(() => {
     if (!uid) return
-    const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`
     const q = query(collection(db, 'notes'), where('uid', '==', uid))
-    const unsubscribe = onSnapshot(q, (snapshot) => {
+    return onSnapshot(q, (snapshot) => {
       const dates = new Set()
       snapshot.forEach((d) => {
-        const date = d.data().date
-        if (date && date.startsWith(monthPrefix) && d.data().reflection) dates.add(date)
+        if (d.data().date) dates.add(d.data().date)
       })
       setNoteDates(dates)
     })
-    return unsubscribe
-  }, [uid, year, month])
+  }, [uid])
+
+  useEffect(() => {
+    if (!uid) return
+    const q = query(collection(db, 'dayLogs'), where('uid', '==', uid))
+    return onSnapshot(q, (snapshot) => {
+      const dates = new Set()
+      snapshot.forEach((d) => {
+        const data = d.data()
+        if (data.date && (data.mood || data.health)) dates.add(data.date)
+      })
+      setLogDates(dates)
+    })
+  }, [uid])
+
+  const activeDates = new Set([...noteDates, ...logDates])
+  const streak = computeStreak(activeDates, today)
 
   const cells = [
     ...Array.from({ length: leadingBlanks }, () => null),
@@ -55,10 +80,10 @@ export default function Home() {
       <div className="two-col">
         <div className="card" style={{ marginBottom: 16 }}>
           <p style={{ fontSize: 13, margin: '0 0 6px' }}>
-            🔥 12 day streak
+            🔥 {streak} day{streak === 1 ? '' : 's'} streak
           </p>
           <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0 }}>
-            Keep showing up daily
+            {streak > 0 ? 'Keep showing up daily' : 'Log a note or a check-in today to start your streak'}
           </p>
         </div>
 
@@ -74,8 +99,8 @@ export default function Home() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
             {cells.map((day, i) => {
               if (day === null) return <span key={`blank-${i}`} />
-              const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-              const hasEntry = noteDates.has(dateKey)
+              const dateKey = `${monthPrefix}-${String(day).padStart(2, '0')}`
+              const hasEntry = activeDates.has(dateKey)
               const isToday = dateKey === todayKey
               return (
                 <button

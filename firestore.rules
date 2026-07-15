@@ -22,21 +22,37 @@ service cloud.firestore {
     }
 
     match /notes/{noteId} {
-      // Single-doc get: doc id convention is `${uid}_${date}` - match on
-      // that instead of resource.data, since resource is null for a
-      // not-yet-written note and the get must still succeed.
-      allow get: if request.auth != null
-        && noteId.matches(request.auth.uid + '_.*');
+      // Multiple notes per day now, auto-generated ids, always fetched
+      // via a `where('uid','==',...)` query so resource always exists
+      // here (no not-yet-written case like dayLogs/notes-by-date below).
+      // Append-only: no update/delete rule, so both are denied.
+      allow read: if request.auth != null
+        && resource.data.uid == request.auth.uid;
 
-      // Collection queries (e.g. this month's notes): resource always
-      // exists here, and Firestore can verify a `where('uid','==',uid)`
-      // query is safe against this condition.
+      allow create: if request.auth != null
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.date is string
+        && request.resource.data.reflection is string
+        && request.resource.data.reflection.size() > 0
+        && request.resource.data.reflection.size() <= 4000;
+    }
+
+    match /dayLogs/{logId} {
+      // One doc per day, id convention `${uid}_${date}`. Same get/list
+      // split as before: get() may target a not-yet-written day.
+      allow get: if request.auth != null
+        && logId.matches(request.auth.uid + '_.*');
+
       allow list: if request.auth != null
         && resource.data.uid == request.auth.uid;
 
       allow write: if request.auth != null
-        && noteId.matches(request.auth.uid + '_.*')
+        && logId.matches(request.auth.uid + '_.*')
         && request.resource.data.uid == request.auth.uid;
+    }
+
+    match /users/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     match /{document=**} {

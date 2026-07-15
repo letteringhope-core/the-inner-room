@@ -5,6 +5,7 @@ import { auth } from './firebase.js'
 import Home from './components/Home.jsx'
 import PrayerWall from './components/PrayerWall.jsx'
 import Notes from './components/Notes.jsx'
+import Profile from './components/Profile.jsx'
 import Login from './components/Login.jsx'
 import BottomNav from './components/BottomNav.jsx'
 
@@ -29,6 +30,7 @@ export default function App() {
         <Route path="/" element={<Home />} />
         <Route path="/prayer" element={<PrayerWall />} />
         <Route path="/notes" element={<Notes />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
       <BottomNav />
