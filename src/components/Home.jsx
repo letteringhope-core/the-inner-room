@@ -1,4 +1,5 @@
 import { useNavigate } from 'react-router-dom'
+import { verseOfTheDay } from '../data/verses.js'
 
 const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 // Placeholder: replace with real streak/note data pulled from Firestore
@@ -10,6 +11,7 @@ const monthDays = Array.from({ length: 7 }, (_, i) => ({
 
 export default function Home() {
   const navigate = useNavigate()
+  const verse = verseOfTheDay()
 
   return (
     <div className="screen">
@@ -18,7 +20,7 @@ export default function Home() {
           Today's scripture
         </p>
         <p className="serif" style={{ fontSize: 18, margin: 0, lineHeight: 1.4 }}>
-          Be still, and know that I am God. — Psalm 46:10
+          {verse.text} — {verse.ref}
         </p>
       </div>
 
