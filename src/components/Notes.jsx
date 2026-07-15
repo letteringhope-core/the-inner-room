@@ -1,12 +1,23 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { collection, addDoc, doc, getDoc, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore'
+import { collection, addDoc, deleteDoc, doc, getDoc, onSnapshot, query, serverTimestamp, where } from 'firebase/firestore'
 import { db, auth } from '../firebase.js'
-import { verses, verseOfTheDay } from '../data/verses.js'
+import { verseOfTheDay } from '../data/verses.js'
+import { bibleBooks } from '../data/books.js'
 import { toDateKey, fromDateKey, formatDateLabel } from '../lib/date.js'
 
 const moodLabels = { amazing: '🤩 Amazing', good: '🙂 Good', meh: '😐 Meh', bad: '☹️ Bad', awful: '😞 Awful' }
 const healthLabels = { healthy: '💪 Healthy', tired: '🥱 Tired', sick: '🤒 Sick' }
+
+const fieldStyle = {
+  width: '100%',
+  background: '#0B0B0B',
+  border: '0.5px solid var(--border)',
+  borderRadius: 8,
+  padding: 8,
+  color: 'var(--text)',
+  fontSize: 12
+}
 
 export default function Notes() {
   const [params] = useSearchParams()
@@ -16,14 +27,11 @@ export default function Notes() {
 
   const [entries, setEntries] = useState([])
   const [reflection, setReflection] = useState('')
-  const [passageRef, setPassageRef] = useState(defaultVerse.ref)
+  const [book, setBook] = useState('')
+  const [chapter, setChapter] = useState('')
+  const [verseRange, setVerseRange] = useState('')
   const [dayLog, setDayLog] = useState(null)
   const [loadingLog, setLoadingLog] = useState(true)
-
-  useEffect(() => {
-    setPassageRef(defaultVerse.ref)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [dateKey])
 
   useEffect(() => {
     if (!uid) return
@@ -53,17 +61,22 @@ export default function Notes() {
   }, [uid, dateKey])
 
   async function addNote() {
-    if (!reflection.trim()) return
-    const passage = verses.find((v) => v.ref === passageRef) || defaultVerse
+    if (!reflection.trim() || !book || !chapter.trim() || !verseRange.trim()) return
+    const passageRef = `${book} ${chapter.trim()}:${verseRange.trim()}`
     await addDoc(collection(db, 'notes'), {
       uid,
       date: dateKey,
-      passageRef: passage.ref,
-      passageText: passage.text,
+      passageRef,
       reflection: reflection.trim(),
       createdAt: serverTimestamp()
     })
     setReflection('')
+    setVerseRange('')
+  }
+
+  async function removeNote(id) {
+    if (!confirm('Delete this note? This cannot be undone.')) return
+    await deleteDoc(doc(db, 'notes', id))
   }
 
   return (
@@ -95,25 +108,41 @@ export default function Notes() {
 
       <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: '0 0 6px' }}>Add a note</p>
       <div className="card" style={{ marginBottom: 16 }}>
-        <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '0 0 4px' }}>Passage</p>
+        <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '0 0 4px' }}>Book</p>
         <select
-          value={passageRef}
-          onChange={(e) => setPassageRef(e.target.value)}
-          style={{
-            width: '100%',
-            background: '#0B0B0B',
-            border: '0.5px solid var(--border)',
-            borderRadius: 8,
-            padding: 8,
-            color: 'var(--text)',
-            fontSize: 12,
-            marginBottom: 10
-          }}
+          value={book}
+          onChange={(e) => setBook(e.target.value)}
+          style={{ ...fieldStyle, marginBottom: 10 }}
         >
-          {verses.map((v) => (
-            <option key={v.ref} value={v.ref}>{v.ref}</option>
+          <option value="">Select book...</option>
+          {bibleBooks.map((b) => (
+            <option key={b} value={b}>{b}</option>
           ))}
         </select>
+
+        <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+          <div style={{ width: 90 }}>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '0 0 4px' }}>Chapter</p>
+            <input
+              type="number"
+              min="1"
+              value={chapter}
+              onChange={(e) => setChapter(e.target.value)}
+              placeholder="3"
+              style={fieldStyle}
+            />
+          </div>
+          <div style={{ flex: 1 }}>
+            <p style={{ fontSize: 10, color: 'var(--text-muted)', margin: '0 0 4px' }}>Verse(s)</p>
+            <input
+              value={verseRange}
+              onChange={(e) => setVerseRange(e.target.value)}
+              placeholder="16 or 16-18"
+              style={fieldStyle}
+            />
+          </div>
+        </div>
+
         <textarea
           value={reflection}
           onChange={(e) => setReflection(e.target.value)}
@@ -140,7 +169,16 @@ export default function Notes() {
       <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
         {entries.map((entry) => (
           <div key={entry.id} className="card">
-            <p style={{ fontSize: 10, color: 'var(--accent)', margin: '0 0 6px' }}>{entry.passageRef}</p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+              <p style={{ fontSize: 10, color: 'var(--accent)', margin: '0 0 6px', flex: 1 }}>{entry.passageRef}</p>
+              <button
+                onClick={() => removeNote(entry.id)}
+                aria-label="Delete note"
+                style={{ background: 'none', border: 'none', color: 'var(--text-faint)', cursor: 'pointer', marginLeft: 8 }}
+              >
+                🗑
+              </button>
+            </div>
             <p style={{ fontSize: 12, margin: 0, lineHeight: 1.4 }}>{entry.reflection}</p>
           </div>
         ))}

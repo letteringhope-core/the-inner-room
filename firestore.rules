@@ -25,7 +25,6 @@ service cloud.firestore {
       // Multiple notes per day now, auto-generated ids, always fetched
       // via a `where('uid','==',...)` query so resource always exists
       // here (no not-yet-written case like dayLogs/notes-by-date below).
-      // Append-only: no update/delete rule, so both are denied.
       allow read: if request.auth != null
         && resource.data.uid == request.auth.uid;
 
@@ -35,6 +34,9 @@ service cloud.firestore {
         && request.resource.data.reflection is string
         && request.resource.data.reflection.size() > 0
         && request.resource.data.reflection.size() <= 4000;
+
+      allow delete: if request.auth != null
+        && resource.data.uid == request.auth.uid;
     }
 
     match /dayLogs/{logId} {
