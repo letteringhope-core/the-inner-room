@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
+  base: process.env.GH_PAGES ? '/the-inner-room/' : '/',
   plugins: [
     react(),
     VitePWA({
