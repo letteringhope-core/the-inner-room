@@ -1,17 +1,45 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { collection, query, where, onSnapshot } from 'firebase/firestore'
+import { db, auth } from '../firebase.js'
 import { verseOfTheDay } from '../data/verses.js'
+import { toDateKey } from '../lib/date.js'
 
-const days = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
-// Placeholder: replace with real streak/note data pulled from Firestore
-const monthDays = Array.from({ length: 7 }, (_, i) => ({
-  date: 9 + i,
-  hasEntry: i < 3 || i === 4,
-  isToday: i === 6
-}))
+const weekdayLabels = ['S', 'M', 'T', 'W', 'T', 'F', 'S']
 
 export default function Home() {
   const navigate = useNavigate()
   const verse = verseOfTheDay()
+  const [noteDates, setNoteDates] = useState(new Set())
+  const uid = auth.currentUser?.uid
+
+  const today = new Date()
+  const year = today.getFullYear()
+  const month = today.getMonth()
+  const todayKey = toDateKey(today)
+  const monthLabel = today.toLocaleDateString(undefined, { month: 'long' })
+  const daysInMonth = new Date(year, month + 1, 0).getDate()
+  const leadingBlanks = new Date(year, month, 1).getDay()
+
+  useEffect(() => {
+    if (!uid) return
+    const monthPrefix = `${year}-${String(month + 1).padStart(2, '0')}`
+    const q = query(collection(db, 'notes'), where('uid', '==', uid))
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const dates = new Set()
+      snapshot.forEach((d) => {
+        const date = d.data().date
+        if (date && date.startsWith(monthPrefix) && d.data().reflection) dates.add(date)
+      })
+      setNoteDates(dates)
+    })
+    return unsubscribe
+  }, [uid, year, month])
+
+  const cells = [
+    ...Array.from({ length: leadingBlanks }, () => null),
+    ...Array.from({ length: daysInMonth }, (_, i) => i + 1)
+  ]
 
   return (
     <div className="screen">
@@ -36,31 +64,37 @@ export default function Home() {
 
         <div className="card">
           <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '0 0 10px' }}>
-            This month
+            {monthLabel}
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6, marginBottom: 8 }}>
-            {days.map((d, i) => (
+            {weekdayLabels.map((d, i) => (
               <span key={i} style={{ fontSize: 10, color: 'var(--text-faint)', textAlign: 'center' }}>{d}</span>
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7,1fr)', gap: 6 }}>
-            {monthDays.map((day) => (
-              <button
-                key={day.date}
-                onClick={() => navigate(`/notes?date=${day.date}`)}
-                style={{
-                  aspectRatio: '1',
-                  border: day.isToday ? '0.5px solid #2ED8A7' : 'none',
-                  borderRadius: 6,
-                  background: day.hasEntry ? '#2ED8A7' : '#1C1C1C',
-                  color: day.hasEntry ? '#04342C' : '#F5F5F5',
-                  fontSize: 11,
-                  cursor: 'pointer'
-                }}
-              >
-                {day.date}
-              </button>
-            ))}
+            {cells.map((day, i) => {
+              if (day === null) return <span key={`blank-${i}`} />
+              const dateKey = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+              const hasEntry = noteDates.has(dateKey)
+              const isToday = dateKey === todayKey
+              return (
+                <button
+                  key={dateKey}
+                  onClick={() => navigate(`/notes?date=${dateKey}`)}
+                  style={{
+                    aspectRatio: '1',
+                    border: isToday ? '0.5px solid #2ED8A7' : 'none',
+                    borderRadius: 6,
+                    background: hasEntry ? '#2ED8A7' : '#1C1C1C',
+                    color: hasEntry ? '#04342C' : '#F5F5F5',
+                    fontSize: 11,
+                    cursor: 'pointer'
+                  }}
+                >
+                  {day}
+                </button>
+              )
+            })}
           </div>
         </div>
       </div>

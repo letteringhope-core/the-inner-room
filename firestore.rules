@@ -21,6 +21,24 @@ service cloud.firestore {
         && resource.data.uid == request.auth.uid;
     }
 
+    match /notes/{noteId} {
+      // Single-doc get: doc id convention is `${uid}_${date}` - match on
+      // that instead of resource.data, since resource is null for a
+      // not-yet-written note and the get must still succeed.
+      allow get: if request.auth != null
+        && noteId.matches(request.auth.uid + '_.*');
+
+      // Collection queries (e.g. this month's notes): resource always
+      // exists here, and Firestore can verify a `where('uid','==',uid)`
+      // query is safe against this condition.
+      allow list: if request.auth != null
+        && resource.data.uid == request.auth.uid;
+
+      allow write: if request.auth != null
+        && noteId.matches(request.auth.uid + '_.*')
+        && request.resource.data.uid == request.auth.uid;
+    }
+
     match /{document=**} {
       allow read, write: if false;
     }
