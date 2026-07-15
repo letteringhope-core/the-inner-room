@@ -1,0 +1,8 @@
+{
+  "name": "The Inner Room",
+  "short_name": "Inner Room",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0B0B0B",
+  "theme_color": "#0B0B0B"
+}
