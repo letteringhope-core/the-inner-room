@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) {window.addEventListener('load', () => {navigator.serviceWorker.register('/the-inner-room/sw.js', { scope: '/the-inner-room/' })})}
